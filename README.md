@@ -8,9 +8,9 @@ _Aug 2025_
 
 ---
 
-***[To visit the website, click here]()***
+***[To visit the website, click here](https://jsrutgers.github.io/transit-transformation/)***
 
-***[To read the unabridged methodology click here](https://github.com/jsrutgers/project_transit/blob/main/U-TURN_%20the%20methodology.pdf))***
+***[To read the unabridged methodology click here](https://github.com/jsrutgers/project_transit/blob/main/U-TURN_%20the%20methodology.pdf)***
 
 ### Why do this investigation?
 

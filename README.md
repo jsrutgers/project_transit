@@ -3,9 +3,12 @@
 _This project analysed changes in public transit access — particularly bus stop locations and frequent service routes — following the implementation of Winnipeg Transit’s new route network. Here's how._
 
 _By Julia-Simone Rutgers_
+
 _Aug 2025_
 
 ---
+
+***[To visit the website, click here]()***
 
 ### Why do this investigation?
 
@@ -33,13 +36,15 @@ It also features maps showing the change in stop locations between the original 
 
 #### In this repo:
 
-Notebooks:
+**Notebooks:**
 
 [Spatial Analysis using Pandas and Geopandas](notebooks/01_transit_change_geographic_analysis.ipynb)
 
 [Transit headway (frequency) analysis using R](notebooks/02_transit_frequency_analysis/transit-frequency-analysis.Rmd)
 
 [Basic compiling and cleaning of census data](notebooks/03_transit_census_data_compiling/census-mapping-transit.ipynb)
+
+**Data Folders:**
 
 [Transit Data for the original network](old_network/)
 
@@ -73,7 +78,7 @@ However, access to frequent transit service has improved. The portion of the pop
 ### Where did the data come from?
 
 
-Bus stop locations were sourced from the General Transit Feed Specification, an open-source database that allows transit networks to publish schedules and real-time data in a standardized format. 
+Bus stop locations were sourced from the [General Transit Feed Specification](https://gtfs.org/), an open-source database that allows transit networks to publish schedules and real-time data in a standardized format. 
 
 For the purposes of this project, I selected two Winnipeg transit feed specifications to represent the original and new route networks respectively. Each feed data set included text files listing: 
 
@@ -85,7 +90,7 @@ For the purposes of this project, I selected two Winnipeg transit feed specifica
 -   The schedule for each stop
 
 
-Census data was sourced from Statistics Canada’s Census Program Data Viewer. I selected the Census Tract geographic level — the smallest available — for the Winnipeg Census Metropolitan Area (CMA) and selected the following indicators from the 2021 Census:
+Census data was sourced from Statistics Canada’s [Census Program Data Viewer](https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/dv-vd/cpdv-vdpr/index-eng.cfm). I selected the Census Tract geographic level — the smallest available — for the Winnipeg Census Metropolitan Area (CMA) and selected the following indicators from the 2021 Census:
 
 - Population change between 2016 - 2021
 - Population density 
@@ -93,7 +98,7 @@ Census data was sourced from Statistics Canada’s Census Program Data Viewer. I
 - 2020 poverty rate
 
 
-Council level census data — including the same indicators used for census tract analysis — was sourced from the City of Winnipeg, which released census data summaries for each ward. I used a bit of browser automation to gather the ward-level census data from the municipal website. This was entirely unneccessary, as all I had to do was click download for each of the 15 files. But I wanted to practice.
+Council level census data — including the same indicators used for census tract analysis — was sourced from the [City of Winnipeg](https://legacy.winnipeg.ca/census/2021/Wards/default.asp), which releases census data summaries for each ward. I used a bit of browser automation to gather the ward-level census data from the municipal website. This was entirely unneccessary, as all I had to do was click download for each of the 15 files. But I wanted to practice.
 
 ---
 
@@ -105,7 +110,7 @@ In short, I used geopandas and QGIS to determine the net change in stops for eac
 
 I also used QGIS' service area feature to calculate the area within a 10 or 15 minute walk of frequent transit in both the new and original networks. 
 
-(Determining which routes counted as "frequent" on the original transit network required analyzing the GTFS data using the R tidytransit package.)
+(Determining which routes counted as "frequent" on the original transit network required analyzing the GTFS data using the [R tidytransit package](https://r-transit.github.io/tidytransit/articles/introduction.html#read-a-gtfs-feed).
 
 ---
 

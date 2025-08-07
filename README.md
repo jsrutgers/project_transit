@@ -9,7 +9,8 @@ _Aug 2025_
 ---
 
 ***[To visit the website, click here]()***
-***[To read the unabridged methodology click here](U-TURN_themethodology.pdf)***
+
+***[To read the unabridged methodology click here](https://github.com/jsrutgers/project_transit/blob/main/U-TURN_%20the%20methodology.pdf))***
 
 ### Why do this investigation?
 

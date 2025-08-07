@@ -114,6 +114,9 @@ I also used QGIS' service area feature to calculate the area within a 10 or 15 m
 
 (Determining which routes counted as "frequent" on the original transit network required analyzing the GTFS data using the [R tidytransit package](https://r-transit.github.io/tidytransit/articles/introduction.html#read-a-gtfs-feed).
 
+One element NOT mentioned in the methodology is that the maps, created in QGIS, were processed with Ai2HTML and transformed into an interactive scrollytelling experience using Aaron Reiss/Soma's scrollama template. This was a learning journey. 
+
+
 ---
 
 ### What would I have done differently?

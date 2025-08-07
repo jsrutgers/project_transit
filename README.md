@@ -9,6 +9,7 @@ _Aug 2025_
 ---
 
 ***[To visit the website, click here]()***
+***[To read the unabridged methodology click here](U-TURN_themethodology.pdf)***
 
 ### Why do this investigation?
 

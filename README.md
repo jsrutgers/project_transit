@@ -33,13 +33,15 @@ It also features maps showing the change in stop locations between the original 
 
 #### In this repo:
 
-Notebooks:
+**Notebooks:**
 
 [Spatial Analysis using Pandas and Geopandas](notebooks/01_transit_change_geographic_analysis.ipynb)
 
 [Transit headway (frequency) analysis using R](notebooks/02_transit_frequency_analysis/transit-frequency-analysis.Rmd)
 
 [Basic compiling and cleaning of census data](notebooks/03_transit_census_data_compiling/census-mapping-transit.ipynb)
+
+**Data Folders:**
 
 [Transit Data for the original network](old_network/)
 

@@ -1,0 +1,230 @@
+---
+title: "GTFS Headway Analysis"
+output: html_notebook
+---
+
+I am using this [tutorial](https://cran.r-project.org/web/packages/tidytransit/vignettes/frequency.html) to attempt to get the frequency of service for routes on the original Winnipeg Transit network. The goal is to ultimately establish which routes are considered "rapid" so they can be mapped as such in the QGIS analysis.
+
+```{r}
+library(tidyverse)
+library(tidytransit)
+library(sf)
+```
+```{r}
+gtfs <- read_gtfs("https://files.mobilitydatabase.org/mdb-717/mdb-717-202504270108/mdb-717-202504270108.zip")
+```
+I've now read in the GTFS files (sourced from the link) for the Winnipeg transit network on Apr 25, 2025. They are in effect as such until the network change on June 29.
+
+Next I need to set a service pattern. This is fascinatingly challenging to take on as a complete R noob, but I tried to do this analysis flying blind in pandas and I have so many concerns about the process, so using a library seems more effective. 
+
+I digress. What matters here is that I'm looking to establish which services run on which dates. As it happens, I know that this data contains three service_ids: 2: weekdays, 3: Saturday, 4: Sunday. This is with the exception of routes running Apr 18 (Good Friday) and May 19 (Victoria Day), which I believe ran on Sunday schedules.
+
+But let's try running the function as it exists and see what happens...
+```{r}
+gtfs <- set_servicepattern(gtfs)
+head(gtfs$.$servicepatterns)
+```
+```{r}
+head(gtfs$.$dates_services)
+head(gtfs$.$dates_servicepatterns)
+
+```
+
+Theoretically, it should now be possible to summarise the services by number of trips and stops. We're going to use the simple features library for distance and route shapes. 
+
+```{r}
+gtfs <- gtfs_as_sf(gtfs)
+gtfs$shapes$length <- st_length(gtfs$shapes)
+
+shape_lengths <- gtfs$shapes %>% 
+  as.data.frame() %>% 
+  select(shape_id,length,-geometry)
+
+head(shape_lengths)
+```
+
+What did I do there? 
+
+- I called the built in function gtfs_as_sf on my data.
+- I assigned the length variable (within the shapes file) a value using function st_length() to calculate the length of the shape 
+-then I created a new dataframe called shape_lengths with the shape id, length and geometry (which is hidden or something?)
+
+Now we're looking closer at the service patterns.
+
+```{r}
+service_pattern_summary <- gtfs$trips %>% 
+  left_join(gtfs$.$servicepatterns, by="service_id") %>% 
+  left_join(shape_lengths, by="shape_id") %>% 
+  left_join(gtfs$stop_times, by= "trip_id") %>% 
+  group_by(servicepattern_id) %>% 
+  summarise(
+    trips = n(),
+    routes = n_distinct(route_id),
+    total_distance_daily_km = sum(as.numeric(length),na.rm=TRUE)/1e3,
+    route_avg_distance_km = (sum(as.numeric(length), na.rm = TRUE)/1e3)/(trips*routes),
+    stops = (n_distinct(stop_id)/2)
+  )
+
+service_pattern_summary <- gtfs$.$dates_servicepatterns %>% 
+  group_by(servicepattern_id) %>% 
+  summarise(days_in_service=n()) %>% 
+  left_join(service_pattern_summary, by="servicepattern_id")
+
+knitr::kable(service_pattern_summary)
+```
+Once again: What did I do?
+- I created a new table to summarize the service patterns we identified
+- This looks at the trips file in the gtfs data, joins with the service patterns we identified by service id, then adds the shape lengths by shape id and the stop times (schedule) by trip id. Each of these ID types is an identifier in the gtfs data. 
+
+Our table would then have each trip, the service pattern associated with that trip, the length (in metres) and the stop times.
+
+From here, we group by our service pattern id (of which there are 3) and we pull a summary of the count of trips, the count of routes (distinct route IDs), the sum of the distance (with n/a's removed) expressed in kms, the average distance of each shape, and the number of stops on that pattern.
+
+We then added a count of the dates where this pattern runs. 
+
+As a result, we see the 's_ae67ca5' pattern (aka the weekday pattern) runs the most often. We can use this to analyse route frequencies.
+
+```{r}
+# Filter all service_ids for the ones with the weekday pattern
+service_ids <- gtfs$.$servicepatterns %>% 
+  filter(servicepattern_id == 's_ae67ca5') %>% 
+  pull(service_id)
+
+glimpse(service_ids)
+```
+This basically tells me what I already knew, that 2 is the weekday service. That's okay, sometimes these are complicated.
+
+Now we're going to look at all of the trips under that weekday pattern and the routes that go along with them.
+
+```{r}
+gtfs$trips %>% 
+  filter(service_id %in% service_ids) %>% 
+  group_by(service_id, route_id) %>% 
+  summarise(count=n()) %>% 
+  head() %>% 
+  glimpse()
+```
+Very cool, basically have all the routes and trips that run on the weekdays. Now we need the headways. The tutorial only looks at the morning. I need something closer to all day. BUT I know there are some weird time values in there. So I'm only going for 7am - 7pm. This should capture peak and off peak.
+
+```{r}
+stop_freq <- get_stop_frequency(gtfs, start_time = "07:00:00", end_time = "19:00:00", service_ids = service_ids, by_route = TRUE)
+
+glimpse(stop_freq)
+```
+Wow. I am SO impressed with this package! This took a looot of work manually for a mediocre result where I didn't feel I was using the full extent of the gtfs data. Having a package that can manage these files more intuitively is amazing. 
+
+Anyway. Looks like headways here are expressed in seconds. Popping over to the console to check how many seconds are in 15 minutes, which is the magic number for me. 
+
+It's 900. A mean or mode headway < 900 is what we're after.
+
+Here's the documentation/tutorial's explanation of the stop frequency function:
+
+_"The get_stop_frequency function simply counts the number of departures within the time frame to get departures per stop. Then, to get headways, it divides the number of seconds (between start_time and end_time) by the number of departures, and rounds to the nearest integer."_
+
+Even more pertinent is the get_route_frequency function, which will be a bit more definitive than stops, since it will look at all the trips along the route. We need our 'rapid' transit to be consistently performing at sub 900 second headways, not just on peak hours. 
+
+```{r}
+route_freq <- get_route_frequency(gtfs, service_ids = service_ids, 
+                                 start_time = "07:00:00", end_time = "19:00:00")
+
+glimpse(route_freq)
+```
+
+Very interesting, looking at this data in a separate tab, I see only the BLUE and 60 lines have median and mean headways of under 15 minutes.
+
+The 11, 18, 60, 47 and 21 have medians under 15 minutes across the entire route, all day. From my other (tedious) analysis, these were identified as "frequent" routes.
+
+## For the joy of it, let's do some mapping:
+
+```{r}
+
+# Get geometry
+routes_sf <- get_route_geometry(gtfs, service_ids = service_ids)
+
+# Join with frequency data
+routes_sf <- routes_sf %>% 
+  inner_join(route_freq, by = 'route_id')
+
+# Plot median headways under 960s (16 minutes)
+
+# convert CRS
+
+routes_sf_crs <- sf:: st_transform(routes_sf, 'EPSG:3158')
+routes_sf_crs %>% 
+  filter(median_headways<= 900) %>% 
+  ggplot() +
+  geom_sf(aes(colour=as.factor(median_headways)))+
+  labs(color="Headways")+
+  geom_sf_text(aes(label=route_id))+
+  theme_bw()
+```
+
+
+One really cool viz they did that I would love to use in my analysis presents deeper lines the more frequently the bus comes. Let's try that. This uses a trick to make it almost a cartogram of frequency along the route lines. 
+
+
+```{r}
+routes_sf_buffer <- st_buffer(routes_sf, dis = routes_sf$total_departures/1e6)
+
+routes_sf_buffer %>% 
+  ggplot() +
+  geom_sf(colour = alpha("white", 0), fill = alpha("red", 0.2)) +
+  theme_bw()
+
+```
+
+This is SO cool to me. 
+
+I want to get a sense of this for stops as well. First I'm going to export my tables.
+
+```{r}
+library("readr")
+
+write_csv(stop_freq, file = "stop_frequency_old.csv")
+write_csv(route_freq, file = "route_frequency_old.csv")
+```
+
+Now let's plot the stops on the rapid routes:
+
+```{r}
+# Get a list of the rapid routes
+rapid_routes <- routes_sf %>% 
+  filter(median_headways <= 900)
+
+# Make a database of the stops
+rapid_stops <- gtfs$stops %>% 
+  inner_join(stop_freq, by = "stop_id") %>% 
+  filter(mean_headway <= 900) %>% 
+  select(stop_id, stop_name, route_id, n_departures, mean_headway) %>% 
+  arrange(mean_headway) 
+```
+
+OK didn't entirely pan out, but that's okay. I am going to map these quick
+
+```{r}
+ggplot() +
+  geom_sf(data = rapid_stops, 
+          aes(size = mean_headway), shape=1) +
+  labs(size = "Mean headway (s)") +
+  theme_bw()
+```
+Let's try again to filter!
+```{r}
+rapid_stops <- rapid_stops %>% 
+  filter(route_id %in% rapid_routes$route_id)
+```
+
+
+YAY it worked. Now we can export: 
+```{r}
+write_csv(rapid_stops, file = "rapid_stops_old.csv")
+write_csv(rapid_routes, file = "rapid_routes_old.csv")
+
+```
+```{r}
+st_write(rapid_stops, "rapid_stops_2024.geojson")
+```
+```{r}
+st_write(routes_sf_buffer, "routes_with_departures.geojson")
+```
+
